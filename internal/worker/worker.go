@@ -101,7 +101,7 @@ func (w *ResizeImageJobWorker) claimPendingJobs(
 			Strength: "UPDATE",
 			Options:  "SKIP LOCKED",
 		}).
-		Where("image_status = ?", "processing").
+		Where("image_status = ?", "pending").
 		Limit(limit).
 		Find(&jobs).Error
 

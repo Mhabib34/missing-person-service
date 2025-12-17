@@ -9,6 +9,7 @@ import (
 	"github.com/Mhbib34/missing-person-service/internal/model"
 	"github.com/Mhbib34/missing-person-service/internal/repository"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type MissingPersonUsecaseImpl struct {
@@ -37,4 +38,11 @@ func (service *MissingPersonUsecaseImpl) Create(ctx context.Context, request dto
 	exception.PanicIfError(err)
 
 	return helper.ToMissingPersonResponse(*missingPerson), err
+}
+
+func (service *MissingPersonUsecaseImpl) FindByID(ctx context.Context, id uuid.UUID) (*model.MissingPersons, error) {
+	missingPerson, err := service.repository.FindByID(ctx, id)
+	exception.PanicIfError(err)
+	
+	return missingPerson, nil
 }

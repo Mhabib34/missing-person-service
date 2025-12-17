@@ -5,6 +5,7 @@ import (
 
 	"github.com/Mhbib34/missing-person-service/internal/exception"
 	"github.com/Mhbib34/missing-person-service/internal/model"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,4 +21,11 @@ func (r *MissingPersonRepositoryImpl) Create(ctx context.Context, missingPerson 
 	err := r.db.WithContext(ctx).Create(missingPerson).Error
 	exception.PanicIfError(err)
 	return missingPerson, nil
+}
+
+func (r *MissingPersonRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*model.MissingPersons, error) {
+	var missingPerson model.MissingPersons
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&missingPerson).Error
+	exception.PanicIfError(err)
+	return &missingPerson, nil
 }
