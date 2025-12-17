@@ -16,6 +16,7 @@ func SetupRouter(controller controller.MissingPersonController) *gin.Engine {
 	api := r.Group("/api/v1")
 	{
 		api.POST("/missing-persons", controller.Create)
+		api.GET("/missing-persons/:id", controller.FindByID)
 	}
 
 	return r

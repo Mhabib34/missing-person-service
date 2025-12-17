@@ -8,7 +8,7 @@ import (
 )
 
 type MissingPersons struct {
-	ID  uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ID  uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	Name        string
 	Age         int
 	Description string

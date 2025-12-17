@@ -19,7 +19,7 @@ const (
 
 
 type MissingPersons struct {
-	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 
 	// Personal Info
 	Name        string `gorm:"type:varchar(100);not null" json:"name"`

@@ -1,6 +1,7 @@
 package exception
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/Mhbib34/missing-person-service/internal/helper"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"gorm.io/gorm"
 )
 
 func ErrorHandler(ctx *gin.Context, err any) {
@@ -17,10 +19,6 @@ func ErrorHandler(ctx *gin.Context, err any) {
 	}
 
 	if validationErrors(ctx, err) {
-		return
-	}
-
-	if unauthorizedError(ctx, err) {
 		return
 	}
 
@@ -49,34 +47,18 @@ func validationErrors(ctx *gin.Context, err any) bool {
 
 
 func notFoundError(ctx *gin.Context, err any) bool {
-	ex, ok := err.(NotFoundError)
-	if ok {
+	if e, ok := err.(error); ok {
+			
+		if errors.Is(e, gorm.ErrRecordNotFound) {
+			webResponse := dto.WebResponse{
+				Code:   http.StatusNotFound,
+				Status: "NOT FOUND",
+				Error:  "Report not found",
+			}
 
-		webResponse := dto.WebResponse{
-			Code:   http.StatusNotFound,
-			Status: "NOT FOUND",
-			Error:  ex.Error(),
+			helper.WriteToResponseBody(ctx, http.StatusNotFound, webResponse)
+			return true
 		}
-
-		helper.WriteToResponseBody(ctx, http.StatusNotFound, webResponse)
-		return true
-	}
-	return false
-}
-
-
-func unauthorizedError(ctx *gin.Context, err any) bool {
-	ex, ok := err.(UnauthorizedError)
-	if ok {
-
-		webResponse := dto.WebResponse{
-			Code:   http.StatusUnauthorized,
-			Status: "UNAUTHORIZED",
-			Error:  ex.Error(),
-		}
-
-		helper.WriteToResponseBody(ctx, http.StatusUnauthorized, webResponse)
-		return true
 	}
 	return false
 }

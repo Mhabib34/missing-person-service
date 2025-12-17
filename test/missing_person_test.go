@@ -13,10 +13,12 @@ import (
 	"github.com/Mhbib34/missing-person-service/internal/controller"
 	"github.com/Mhbib34/missing-person-service/internal/entity"
 	"github.com/Mhbib34/missing-person-service/internal/middleware"
+	"github.com/Mhbib34/missing-person-service/internal/model"
 	"github.com/Mhbib34/missing-person-service/internal/repository"
 	"github.com/Mhbib34/missing-person-service/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -35,7 +37,7 @@ func setupTestDB() *gorm.DB {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&entity.MissingPersons{})
+	err = db.AutoMigrate(&model.MissingPersons{})
 	if err != nil {
 		panic(err)
 	}
@@ -59,6 +61,7 @@ func setupRouter(db *gorm.DB) http.Handler {
 	api := r.Group("/api/v1")
 	{
 		api.POST("/missing-persons", controller.Create)
+		api.GET("/missing-persons/:id", controller.FindByID)
 	}
 
 	return r
@@ -181,4 +184,98 @@ func TestCreateMissingPersonFailedBadRequest(t *testing.T) {
 	json.Unmarshal(respBody, &response)
 
 	assert.Equal(t, "BAD REQUEST", response["status"])
+}
+
+
+func TestGetMissingPersonByIdSuccess(t *testing.T) {
+	truncateMissingPersons(testDB)
+
+	// ===== create data via GORM (UUID auto) =====
+	missingPerson := model.MissingPersons{
+		Name:        "Joko",
+		Age:         63,
+		Description: "celana pendek",
+		LastSeen:    "Medan",
+		Contact:     "08123456789",
+		PhotoID:     "test-image.jpg",
+	}
+
+	err := testDB.Create(&missingPerson).Error
+	assert.Nil(t, err)
+
+	// ⚠️ pastikan UUID ter-generate
+	assert.NotEqual(t, uuid.Nil, missingPerson.ID)
+
+	// ===== request GET =====
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/missing-persons/"+missingPerson.ID.String(),
+		nil,
+	)
+
+	recorder := httptest.NewRecorder()
+	testRouter.ServeHTTP(recorder, req)
+
+	// ===== assert response =====
+	resp := recorder.Result()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	var response map[string]any
+	_ = json.Unmarshal(respBody, &response)
+
+	assert.Equal(t, "OK", response["status"])
+
+	data := response["data"].(map[string]any)
+
+	assert.Equal(t, missingPerson.ID.String(), data["id"])
+	assert.Equal(t, "Joko", data["name"])
+	assert.Equal(t, float64(63), data["age"])
+	assert.Equal(t, "celana pendek", data["description"])
+	assert.Equal(t, "Medan", data["last_seen"])
+	assert.Equal(t, "08123456789", data["contact"])
+	assert.Equal(t, "pending", data["image_status"])
+	assert.Equal(t, "test-image.jpg", data["photo_id"])
+}
+func TestGetMissingPersonByIdFailedIfNotFound(t *testing.T) {
+	truncateMissingPersons(testDB)
+
+	// ===== create data via GORM (UUID auto) =====
+	missingPerson := model.MissingPersons{
+		Name:        "Joko",
+		Age:         63,
+		Description: "celana pendek",
+		LastSeen:    "Medan",
+		Contact:     "08123456789",
+		PhotoID:     "test-image.jpg",
+	}
+
+	err := testDB.Create(&missingPerson).Error
+	assert.Nil(t, err)
+
+	// ⚠️ pastikan UUID ter-generate
+	assert.NotEqual(t, uuid.Nil, missingPerson.ID)
+
+	// ===== request GET =====
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/missing-persons/ef62bded-d467-4968-b686-742e256bd0b5",
+		nil,
+	)
+
+	recorder := httptest.NewRecorder()
+	testRouter.ServeHTTP(recorder, req)
+
+	// ===== assert response =====
+	resp := recorder.Result()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	var response map[string]any
+	_ = json.Unmarshal(respBody, &response)
+
+	assert.Equal(t, "NOT FOUND", response["status"])
+	assert.Equal(t, "Report not found", response["error"])
 }

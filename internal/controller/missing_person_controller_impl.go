@@ -50,3 +50,27 @@ func (c *MissingPersonControllerImpl) Create(ctx *gin.Context) {
 
 	helper.WriteToResponseBody(ctx, http.StatusCreated, webResponse)
 }
+
+func (c *MissingPersonControllerImpl) FindByID(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+
+	id, err := helper.StringToUUID(idParam)
+	if err != nil {
+		exception.ErrorHandler(ctx, err)
+		return
+	}
+
+	missingPerson, err := c.usecase.FindByID(ctx.Request.Context(), id)
+	if err != nil {
+		exception.ErrorHandler(ctx, err)
+		return
+	}
+
+	webResponse := dto.WebResponse{
+		Status: "OK",
+		Message: "Report retrieved successfully",
+		Data:   missingPerson,
+	}
+
+	helper.WriteToResponseBody(ctx, http.StatusOK, webResponse)
+}
