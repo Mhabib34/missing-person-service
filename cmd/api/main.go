@@ -5,37 +5,27 @@ import (
 	"log"
 	"time"
 
-	"github.com/Mhbib34/missing-person-service/internal/controller"
-	"github.com/Mhbib34/missing-person-service/internal/database"
-	"github.com/Mhbib34/missing-person-service/internal/repository"
-	"github.com/Mhbib34/missing-person-service/internal/router"
-	"github.com/Mhbib34/missing-person-service/internal/usecase"
-	"github.com/Mhbib34/missing-person-service/internal/worker"
-	"github.com/go-playground/validator/v10"
+	"github.com/Mhbib34/missing-person-service/cmd/wire"
 	"github.com/joho/godotenv"
 )
 
-func main() {
+func init() {
+	// Load .env hanya sekali di awal
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	// lanjut connect DB
-	db, err := database.Connect()
+}
+
+
+func main() {
+	app, err := wire.InitializeServer()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	repo := repository.NewMissingPersonRepository(db)
-	validate := validator.New()
-	usecase := usecase.NewMissingPersonUsecase(repo, validate)
-	controller := controller.NewMissingPersonController(usecase)
-
 	ctx := context.Background()
-	worker := worker.NewResizeImageJobWorker(db, 5)
-	go worker.Start(ctx, 5*time.Second)
+	go app.Worker.Start(ctx, 5*time.Second)
 
-
-	r := router.SetupRouter(controller)
-	r.Run(":3000")
+	app.Router.Run(":3000")
 }
